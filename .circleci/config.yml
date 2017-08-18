@@ -1,0 +1,80 @@
+version: 2
+# build_agent: picard:0.0.3954-7f44c7a
+jobs:
+  build:
+    docker:
+      - image: clojure:lein-2.7.1
+      - image: postgres:9.3-alpine
+        environment:
+          POSTGRES_USER: root
+          POSTGRES_DB: test
+
+    working_directory: ~/suricatta
+    steps:
+      - checkout
+
+      - run: ls -la /.circleci-task-data || true
+
+      - run: ls -la /.circleci-task-data/circle-test-results || true
+
+      - run: cat /.circleci-task-data/circle-test-results/results.json || true
+
+      - run: |
+          echo -e "test/suricatta/core_test.clj\ntest/suricatta/dsl_test.clj\ntest/suricatta/extend_test.clj" | xargs cat | grep "(ns" | sed "s/(ns \(.*\)/\1/" | circleci tests split --split-by=timings --timings-type=classname --total 2 --index 0
+
+      - run: |
+          echo -e "test/suricatta/core_test.clj\ntest/suricatta/dsl_test.clj\ntest/suricatta/extend_test.clj" | xargs cat | grep "(ns" | sed "s/(ns \(.*\)/\1/" | circleci tests split --split-by=timings --timings-type=classname --total 2 --index 1
+
+      - restore_cache:
+          key: v6-jars-{{ checksum "project.clj" }}
+
+      - run: lein test-all
+
+      - save_cache:
+          key: v6-jars-{{ checksum "project.clj" }}
+          paths:
+            - ~/.m2
+
+      - persist_to_workspace:
+          root: ~/suricatta
+          paths:
+            - project.clj
+          
+
+      - store_artifacts:
+          path: test2junit
+
+      - store_test_results:
+          path: test2junit/xml
+
+  deploy:
+    docker:
+      - image: alpine:3.4
+    working_directory: /
+    steps:
+      - run: apk update && apk add ca-certificates
+
+      - run: ls -la /.circleci-task-data || true
+
+      - run: ls -la /.circleci-task-data/circle-test-results || true
+
+      - run: cat /.circleci-task-data/circle-test-results/results.json || true
+          
+      - attach_workspace:
+          at: ~/suricatta
+
+      - run: ls ~/suricatta
+
+      - run: cat ~/suricatta/project.clj
+      
+      - run: echo YAY
+
+workflows:
+  version: 2
+  btd:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+  
