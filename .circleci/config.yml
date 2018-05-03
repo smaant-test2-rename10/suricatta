@@ -39,16 +39,17 @@ jobs:
       - image: alpine:3.4
     working_directory: /
     steps:
-      - run: apk update && apk add ca-certificates
+      - run: echo "DEPLOY"
+#      - run: apk update && apk add ca-certificates
 
-      - attach_workspace:
-          at: ~/suricatta
+#      - attach_workspace:
+#          at: ~/suricatta
 
-      - run: ls ~/suricatta
+#      - run: ls ~/suricatta
 
-      - run: cat ~/suricatta/project.clj
+#      - run: cat ~/suricatta/project.clj
       
-      - run: echo YAY
+#      - run: echo YAY
 
 workflows:
   version: 2
